@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Abhinav-6/chirpy/middleware"
+	"github.com/go-chi/chi/v5"
 )
 
 func healthzHandler(w http.ResponseWriter, r *http.Request) {
@@ -16,20 +17,20 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	var config middleware.ApiConfig
-	mux := http.NewServeMux()
+	r := chi.NewRouter()
 	file := http.FileServer(http.Dir("."))
-	mux.Handle("/app/", config.MiddlewareMetricsInc(http.StripPrefix("/app/", file)))
-
-	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+	r.Handle("/app/*", config.MiddlewareMetricsInc(http.StripPrefix("/app/", file)))
+	r.Handle("/app", config.MiddlewareMetricsInc(http.StripPrefix("/app", file)))
+	r.Get("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hits: %d", config.FileServerHits)
 	})
 
-	mux.HandleFunc("/reset", func(w http.ResponseWriter, r *http.Request) {
-		config.FileServerHits=0;
-		http.Redirect(w,r,"/metrics",http.StatusPermanentRedirect)
+	r.Get("/reset", func(w http.ResponseWriter, r *http.Request) {
+		config.FileServerHits = 0
+		http.Redirect(w, r, "/metrics", http.StatusPermanentRedirect)
 	})
 
-	mux.HandleFunc("/healthz", healthzHandler)
-	corsMux := middleware.MiddlewareCors(mux)
+	r.Get("/healthz", healthzHandler)
+	corsMux := middleware.MiddlewareCors(r)
 	http.ListenAndServe(":8080", corsMux)
 }
