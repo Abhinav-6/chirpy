@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"io"
 	// "log"
@@ -90,11 +91,27 @@ func main() {
 			fmt.Fprintf(w, errorResponse{"Chirp is too long"}.Message)
 			return
 		}
+		out, err := json.Marshal(validResponse{cleanChirp(params.Body)})
+		if err != nil {
+			panic(err)
+		}
 		w.WriteHeader(200)
-		fmt.Fprintf(w, validResponse{"OK"}.Message)
+		fmt.Fprintf(w, string(out))
 
 	})
 
 	corsMux := middleware.MiddlewareCors(r)
 	http.ListenAndServe(":8080", corsMux)
+}
+
+func cleanChirp(s string) string {
+	ss := strings.Split(s, " ")
+	for i, str := range ss {
+		word := strings.ToLower(str)
+		switch word {
+		case "fornax", "sharbert", "kerfuffle":
+			ss[i] = "****"
+		}
+	}
+	return strings.Join(ss, " ")
 }
