@@ -18,19 +18,23 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	var config middleware.ApiConfig
 	r := chi.NewRouter()
+	appRouter := chi.NewRouter()
 	file := http.FileServer(http.Dir("."))
-	r.Handle("/app/*", config.MiddlewareMetricsInc(http.StripPrefix("/app/", file)))
-	r.Handle("/app", config.MiddlewareMetricsInc(http.StripPrefix("/app", file)))
-	r.Get("/metrics", func(w http.ResponseWriter, r *http.Request) {
+	appRouter.Handle("/*", config.MiddlewareMetricsInc(http.StripPrefix("/app/", file)))
+	appRouter.Handle("/", config.MiddlewareMetricsInc(http.StripPrefix("/app", file)))
+
+	appRouter.Get("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hits: %d", config.FileServerHits)
 	})
 
-	r.Get("/reset", func(w http.ResponseWriter, r *http.Request) {
+	appRouter.Get("/reset", func(w http.ResponseWriter, r *http.Request) {
 		config.FileServerHits = 0
-		http.Redirect(w, r, "/metrics", http.StatusPermanentRedirect)
+		http.Redirect(w, r, "/app/metrics", http.StatusPermanentRedirect)
 	})
 
-	r.Get("/healthz", healthzHandler)
+	appRouter.Get("/healthz", healthzHandler)
+	r.Mount("/app/", appRouter)
+
 	corsMux := middleware.MiddlewareCors(r)
 	http.ListenAndServe(":8080", corsMux)
 }
