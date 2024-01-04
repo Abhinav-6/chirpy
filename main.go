@@ -2,16 +2,20 @@ package main
 
 import (
 	// "encoding/json"
+	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 
 	// "io"
 	// "log"
-	"github.com/go-chi/chi/middleware"
 	"net/http"
+
+	"github.com/go-chi/chi/middleware"
 
 	"github.com/Abhinav-6/chirpy/assets/util"
 	"github.com/Abhinav-6/chirpy/database"
+
 	// "github.com/Abhinav-6/chirpy/middleware"
 	"github.com/go-chi/chi/v5"
 )
@@ -46,37 +50,36 @@ func main() {
 		util.RespondWithJSON(w, http.StatusOK, data)
 	})
 
-	// r.Post("/api/validate_chirp", func(w http.ResponseWriter, r *http.Request) {
-	// 	defer r.Body.Close()
+	r.Post("/api/chirps", func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		data, err := io.ReadAll(r.Body)
+		if err != nil {
+			util.RespondWithError(w, http.StatusInternalServerError, "Couldn't read request.")
+			return
+		}
+		var params struct {
+			Body string `json:"body"`
+		}
+		err = json.Unmarshal(data, &params)
 
-	// 	dat, err := io.ReadAll(r.Body)
-	// 	if err != nil {
-	// 		w.WriteHeader(500)
-	// 		fmt.Fprintf(w, "couldn't read request")
-	// 		return
-	// 	}
-	// 	var params param
-	// 	err = json.Unmarshal(dat, &params)
-	// 	if err != nil {
-	// 		w.WriteHeader(500)
-	// 		fmt.Fprintf(w, "error parsing request")
-	// 		return
-	// 	}
+		if err != nil {
+			util.RespondWithError(w, http.StatusInternalServerError, "Error parsing request.")
+			return
+		}
+		if len(params.Body) > 140 {
+			util.RespondWithError(w, http.StatusNotAcceptable, "Too large chirp to get chirped.")
+			return
+		}
 
-	// 	if len(params.Body) > 140 {
-	// 		w.WriteHeader(400)
-	// 		fmt.Fprintf(w, errorResponse{"Chirp is too long"}.Message)
-	// 		return
-	// 	}
-	// 	out, err := json.Marshal(validResponse{cleanChirp(params.Body)})
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	w.WriteHeader(200)
-	// 	fmt.Fprintf(w, string(out))
+		ch, err := db.CreateChirp(params.Body)
+		if err != nil {
+			util.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		util.RespondWithJSON(w, http.StatusCreated, ch)
+	})
 
-	// })
-
+	
 	corsMux := util.MiddlewareCors(r)
 	http.ListenAndServe("localhost:3000", corsMux)
 }
