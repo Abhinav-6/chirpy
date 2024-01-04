@@ -9,6 +9,7 @@ import (
 	// "log"
 	"net/http"
 
+	"github.com/Abhinav-6/chirpy/database"
 	"github.com/Abhinav-6/chirpy/middleware"
 	"github.com/go-chi/chi/v5"
 )
@@ -75,16 +76,6 @@ func main() {
 			fmt.Fprintf(w, "error parsing request")
 			return
 		}
-		// decoder := json.NewDecoder(r.Body)
-		// params := param{}
-		// err := decoder.Decode(&params)
-		// if err != nil {
-		// 	// an error will be thrown if the JSON is invalid or has the wrong types
-		// 	// any missing fields will simply have their values in the struct set to their zero value
-		// 	log.Printf("Error decoding parameters: %s", err)
-		// 	w.WriteHeader(500)
-		// 	return
-		// }
 
 		if len(params.Body) > 140 {
 			w.WriteHeader(400)
@@ -101,7 +92,7 @@ func main() {
 	})
 
 	corsMux := middleware.MiddlewareCors(r)
-	http.ListenAndServe(":8080", corsMux)
+	http.ListenAndServe(":3000", corsMux)
 }
 
 func cleanChirp(s string) string {
