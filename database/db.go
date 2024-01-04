@@ -3,9 +3,9 @@ package database
 import (
 	"encoding/json"
 	"errors"
-	"strconv"
 	"log"
 	"os"
+	"strconv"
 	"sync"
 )
 
@@ -68,6 +68,20 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 		ch = append(ch, d)
 	}
 	return ch, err
+}
+
+func (db *DB) GetChirpsById(id string) (Chirp, error) {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+	dat, err := db.loadDB()
+	if err != nil {
+		return Chirp{}, err
+	}
+	ch, ok := dat.Chirps[id]
+	if !ok {
+		return Chirp{}, errors.New("Chirp doesn't exist")
+	}
+	return ch, nil
 }
 
 // loadDB reads the database file into memory
